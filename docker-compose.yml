@@ -1,38 +1,21 @@
 version: '2.2'
 services:
-  misp:
+  app:
     container_name: misp-app
     image: misp
     restart: unless-stopped
     networks: 
       - misp-frontend
-      - misp-backend
     ports:
       - 80:80
       - 443:443
-  mysql:
-    container_name: misp-mysql
-    image: mysql:5.7
-    restart: unless-stopped
-    networks: 
-      - misp-backend
     volumes:
-      - misp-mysql:/var/lib/mysql
-  redis:
-    container_name: misp-redis
-    image: redis:5.0
-    restart: unless-stopped
-    networks: 
-      - misp-backend
-    volumes:
-      - misp-redis:/data
+      - misp-db:/var/lib/mysql
 
 volumes:
-  misp-mysql:
-  misp-redis:
-
+  misp-db:
+    external: true
+    
 networks: 
   misp-frontend:
     driver: bridge
-  misp-backend:
-    driver: overlay

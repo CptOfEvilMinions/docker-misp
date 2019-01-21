@@ -15,7 +15,7 @@ ENV gpg_key_length="4096"
 ENV gpg_subkey_type="1"
 ENV gpg_subkey_length="4096"
 ENV gpg_name_real="MISP"
-ENV gpg_name_email="admin@hackinglab.local"
+ENV gpg_name_email="admin@admin.test"
 ENV gpg_expire_date="0"
 
 ############################################################
@@ -40,7 +40,6 @@ RUN sed -i "s/max_execution_time = 30/max_execution_time = 300/" /etc/php/7.2/ap
     sed -i "s/memory_limit = 128M/memory_limit = 512M/" /etc/php/7.2/apache2/php.ini && \
     sed -i "s/upload_max_filesize = 2M/upload_max_filesize = 50M/" /etc/php/7.2/apache2/php.ini && \
     sed -i "s/post_max_size = 8M/post_max_size = 50M/" /etc/php/7.2/apache2/php.ini
-
 
 # Set Syslog-ng output to /dev/log
 RUN sed -i -E 's/^(\s*)system\(\);/\1unix-stream("\/dev\/log");/' /etc/syslog-ng/syslog-ng.conf
@@ -143,34 +142,6 @@ COPY certs/misp.crt /etc/ssl/private/misp.crt
 # Copy VirutalHost configs
 COPY conf/misp-apache.conf /etc/apache2/sites-available/000-default.conf
 COPY conf/misp-https-apache.conf /etc/apache2/sites-available/default-ssl.conf
-
-    # echo "<VirtualHost *:80>" > /etc/apache2/sites-available/000-default.conf && \
-    # echo "ServerName $MISP_FQDN" >> /etc/apache2/sites-available/000-default.conf && \
-    # echo "Redirect permanent / https://$MISP_FQDN" >> /etc/apache2/sites-available/000-default.conf && \
-    # echo "LogLevel warn" >> /etc/apache2/sites-available/000-default.conf && \
-    # echo "ErrorLog /var/log/apache2/misp_error.log" >> /etc/apache2/sites-available/000-default.conf && \
-    # echo "CustomLog /var/log/apache2/misp_access.log combined" >> /etc/apache2/sites-available/000-default.conf && \
-    # echo "ServerSignature Off" >> /etc/apache2/sites-available/000-default.conf && \
-    # echo "</VirtualHost>" >> /etc/apache2/sites-available/000-default.conf && \
-
-    # echo "<VirtualHost *:443>" > /etc/apache2/sites-available/default-ssl.conf && \
-    # echo "ServerAdmin $MISP_EMAIL" >> /etc/apache2/sites-available/default-ssl.conf && \
-    # echo "ServerName $MISP_FQDN" >> /etc/apache2/sites-available/default-ssl.conf && \
-    # echo "DocumentRoot /var/www/MISP/app/webroot" >> /etc/apache2/sites-available/default-ssl.conf && \
-    # echo "<Directory /var/www/MISP/app/webroot>" >> /etc/apache2/sites-available/default-ssl.conf && \
-    # echo "Options -Indexes" >> /etc/apache2/sites-available/default-ssl.conf && \
-    # echo "AllowOverride all" >> /etc/apache2/sites-available/default-ssl.conf && \
-    # echo "</Directory>" >> /etc/apache2/sites-available/default-ssl.conf && \
-    # echo "SSLEngine On" >> /etc/apache2/sites-available/default-ssl.conf && \
-    # echo "SSLCertificateFile /etc/ssl/private/misp.crt" >> /etc/apache2/sites-available/default-ssl.conf && \
-    # echo "SSLCertificateKeyFile /etc/ssl/private/misp.key" >> /etc/apache2/sites-available/default-ssl.conf && \
-    # echo "#SSLCertificateChainFile /etc/ssl/private/misp-chain.crt" >> /etc/apache2/sites-available/default-ssl.conf && \
-    # echo "LogLevel warn" >> /etc/apache2/sites-available/default-ssl.conf && \
-    # echo "ErrorLog /var/log/apache2/misp_ssl_error.log" >> /etc/apache2/sites-available/default-ssl.conf && \
-    # echo "CustomLog /var/log/apache2/misp_ssl_access.log combined" >> /etc/apache2/sites-available/default-ssl.conf && \
-    # echo "ServerSignature Off" >> /etc/apache2/sites-available/default-ssl.conf && \
-    # echo "</VirtualHost>" >> /etc/apache2/sites-available/default-ssl.conf && \
-
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
 ############################################################
@@ -197,7 +168,7 @@ RUN sed -i -e 's/db login/misp/g' /var/www/MISP/app/Config/database.php ; \
     tar zxvf ssdeep-2.13.tar.gz && cd ssdeep-2.13 && ./configure && make && sudo make install ; \
     sudo pecl install ssdeep ; \
     sudo echo "extension=ssdeep.so" > /etc/php/7.2/mods-available/ssdeep.ini ; \
-    sudo phpenmod ssdeep ;
+    sudo phpenmod ssdeep
 
 # MySQL init DB
 COPY mysql-init.sh /init-db
@@ -206,16 +177,18 @@ COPY mysql-init.sh /init-db
 RUN sed -i "s#\$MYSQL_MISP_PASSWORD#$MYSQL_MISP_PASSWORD#g" /init-db
 RUN chmod 755 /init-db
 
-RUN sudo -u www-data -H mkdir /var/www/MISP/.gnupg ; \
-    chmod 700 /var/www/MISP/.gnupg ; \
-    echo "Key-Type: 1" > /tmp/config_gpg ; \
-    echo "Key-Length: 4096" >> /tmp/config_gpg ; \
-    echo "Subkey-Type: 1" >> /tmp/config_gpg ; \
-    echo "Subkey-Length: 4096" >> /tmp/config_gpg ; \
-    echo "Name-Real: MISP" >> /tmp/config_gpg ; \
-    echo "Name-Email: $MISP_EMAIL" >> /tmp/config_gpg ; \
-    echo "Expire-Date: 0" >> /tmp/config_gpg ; \
-    chmod 700 /tmp/config_gpg ; \
+# Setup GPG config
+RUN sudo -u www-data -H mkdir /var/www/MISP/.gnupg && chmod 700 /var/www/MISP/.gnupg
+COPY config_gpg /tmp/config_gpg
+RUN sed -i "s#^Key-Type: .*#Key-Type: ${gpg_key_type}#" /tmp/config_gpg
+RUN sed -i "s#^Key-Length: .*#Key-Length: ${gpg_key_length}#" /tmp/config_gpg
+RUN sed -i "s#^Subkey-Type: .*#Subkey-Type: ${gpg_subkey_type}#" /tmp/config_gpg
+RUN sed -i "s#^Subkey-Length: .*#Subkey-Length: ${gpg_subkey_length}#" /tmp/config_gpg
+RUN sed -i "s#^Name-Real: .*#Name-Real: ${gpg_name_real}#" /tmp/config_gpg
+RUN sed -i "s#^Name-Email: .*#Name-Email: ${gpg_name_email}#" /tmp/config_gpg
+RUN sed -i "s#^Expire-Date: .*#Expire-Date: ${gpg_expire_date}#" /tmp/config_gpg
+
+RUN chmod 700 /tmp/config_gpg ; \
     sudo rm -f /dev/random ; \
     sudo mknod -m 0666 /dev/random c 1 9 ; \
     sudo echo RNGDOPTIONS="--random-device /dev/urandom --rng-device /dev/urandom" | sudo tee /etc/default/rng-tools ; \
@@ -227,38 +200,6 @@ RUN sudo -u www-data -H mkdir /var/www/MISP/.gnupg ; \
     sudo -u www-data sh -c "gpg --homedir /var/www/MISP/.gnupg --export --armor $MISP_EMAIL > /var/www/MISP/app/webroot/gpg.asc" ; \
     sudo /etc/init.d/rng-tools stop ; \
     sudo apt-get remove --purge -y rng-tools
-
-# Setup GPG config
-#RUN sudo -u www-data -H mkdir /var/www/MISP/.gnupg && chmod 700 /var/www/MISP/.gnupg
-#COPY config_gpg /tmp/config_gpg
-#RUN sed -i "s#^Key-Type: .*#Key-Type: ${gpg_key_type}#" /tmp/config_gpg
-#RUN sed -i "s#^Key-Length: .*#Key-Length: ${gpg_key_length}#" /tmp/config_gpg
-#RUN sed -i "s#^Subkey-Type: .*#Subkey-Type: ${gpg_subkey_type}#" /tmp/config_gpg
-#RUN sed -i "s#^Subkey-Length: .*#Subkey-Length: ${gpg_subkey_length}#" /tmp/config_gpg
-#RUN sed -i "s#^Name-Real: .*#Name-Real: ${gpg_name_real}#" /tmp/config_gpg
-#RUN sed -i "s#^Name-Email: .*#Name-Email: ${gpg_name_email}#" /tmp/config_gpg
-#RUN sed -i "s#^Expire-Date: .*#Expire-Date: ${gpg_expire_date}#" /tmp/config_gpg
-
-#RUN cat /tmp/config_gpg
-    # echo "Key-Type: 1" > /tmp/config_gpg && \
-    # echo "Key-Length: 4096" >> /tmp/config_gpg && \
-    # echo "Subkey-Type: 1" >> /tmp/config_gpg && \
-    # echo "Subkey-Length: 4096" >> /tmp/config_gpg && \
-    # echo "Name-Real: MISP" >> /tmp/config_gpg && \
-    # echo "Name-Email: $MISP_EMAIL" >> /tmp/config_gpg && \
-    # echo "Expire-Date: 0" >> /tmp/config_gpg && \
-
-#RUN chmod 700 /tmp/config_gpg 
-#RUN sudo rm -f /dev/random && sudo mknod -m 0666 /dev/random c 1 9
-#RUN sudo echo RNGDOPTIONS="--random-device /dev/urandom --rng-device /dev/urandom" | sudo tee /etc/default/rng-tools 
-#RUN sudo echo HRNGDEVICE=/dev/urandom | sudo tee /etc/default/rng-tools 
-#RUN sudo /etc/init.d/rng-tools restart 
-#RUN sudo rngd -f -r /dev/urandom 
-#RUN chown www-data /tmp/config_gpg 
-#RUN sudo -u www-data sh -c "gpg --batch --homedir /var/www/MISP/.gnupg --gen-key /tmp/config_gpg" 
-#RUN sudo -u www-data sh -c "gpg --homedir /var/www/MISP/.gnupg --export --armor $MISP_EMAIL > /var/www/MISP/app/webroot/gpg.asc" 
-#RUN sudo /etc/init.d/rng-tools stop
-#RUN sudo apt-get remove --purge -y rng-tools
 
 ############################################################
 # Logrotate
@@ -278,6 +219,8 @@ COPY supervisord.conf /etc/supervisor/conf.d/
 WORKDIR /var/www/MISP
 
 # 80/443 - MISP web server, 3306 - mysql, 6379 - redis, 50000 - MISP ZeroMQ
-EXPOSE 80 443 3306 6379 50000
+# EXPOSE 80 443 3306 6379 50000
+EXPOSE 80 443
 
+# Run services
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
