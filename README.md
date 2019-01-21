@@ -25,6 +25,9 @@ Latest Upstream Change Included: `a62bca4e169c919413bba4e6ce978e30aae9183e`
 
 ### Generate OpenSSL cert
 
+1. `git clone https://github.com/harvard-itsecurity/docker-misp.git`
+1. `cd docker-misp`
+
 ```bash
 openssl req -newkey rsa:4096 \
     -nodes -x509 -days 3650 \
@@ -39,8 +42,6 @@ openssl req -newkey rsa:4096 \
 
 ### Building MISP Docker image
 
-1. `git clone https://github.com/harvard-itsecurity/docker-misp.git`
-1. `cd docker-misp`
 1. Run the following command to build the Docker image
     1. This build process can take up to 20mins
 
@@ -80,9 +81,7 @@ echo $mysql_pass
 ## Contributions
 
 * Conrad Crampton: @radder5 - RNG Tools and MISP Modules
-
 * Jeremy Barlow: @jbarlow-mcafee - Cleanup, configs, conveniences, python 2 vs 3 compatibility
-
 * Matt Saunders: @matt-saunders - Fixed all install warnings and errors
 
 ## Help/Questions/Comments
