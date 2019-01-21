@@ -1,9 +1,21 @@
 #!/bin/bash
-docker rmi harvarditsecurity/misp
+#mysql_pass=$(openssl rand -hex 32)
+mysql_pass="password123"
+echo $mysql_pass
+
+echo "Build container"
 docker build \
-    --rm=true --force-rm=true \
-    --build-arg MYSQL_MISP_PASSWORD=ChangeThisDefaultPassworda9564ebc3289b7a14551baf8ad5ec60a \
-    --build-arg POSTFIX_RELAY_HOST=localhost \
-    --build-arg MISP_FQDN=localhost \
-    --build-arg MISP_EMAIL=admin@localhost \
-    -t harvarditsecurity/misp container
+    --build-arg MYSQL_MISP_PASSWORD=$mysql_pass \
+    --build-arg POSTFIX_RELAY_HOST=smtp.hackinglab.local \
+    --build-arg MISP_FQDN=misp.hackinglab.local \
+    --build-arg MISP_EMAIL=admin@hackinglab.local \
+    -t misp container
+
+#echo "Create volume misp-db"
+#docker volume create misp-db
+
+#echo "Init database"
+#docker run -it --rm -v misp-db:/var/lib/mysql harvarditsecurity/misp /init-db
+
+echo "MySQL password"
+echo $mysql_pass
